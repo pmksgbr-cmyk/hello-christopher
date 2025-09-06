@@ -2,51 +2,54 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Mieter</title>
+  <title>Mieter (Online)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <h1>Mieterübersicht 🏠</h1>
+  <h1>Mieterübersicht 🏠 (online)</h1>
 
   <input id="name" type="text" placeholder="Neuer Mietername">
   <button onclick="addTenant()">Hinzufügen</button>
 
   <ul id="list"></ul>
 
-  <p><a href="index.html">⬅️ Zurück zur Startseite</a></p>
+  <p><a href="index.html">⬅️ Zurück</a></p>
 
   <script>
-    const KEY = "mieterList";
+    // TODO: HIER deine Werte einsetzen:
+    const SUPABASE_URL = "https://ydraecgzxatvphidsjmo.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkcmFlY2d6eGF0dnBoaWRzam1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNTkwNTMsImV4cCI6MjA3MjczNTA1M30.sS350GFY-MY2MsWP2x0Ar9K8Je04-JWVodMTu6HxG5I";
 
-    function load() {
-      const data = JSON.parse(localStorage.getItem(KEY) || "[]");
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    async function load() {
       const ul = document.getElementById("list");
+      ul.innerHTML = "Lade...";
+      const { data, error } = await client.from("tenants").select("*").order("created_at", { ascending: true });
+      if (error) { ul.innerHTML = "Fehler: " + error.message; return; }
       ul.innerHTML = "";
-      data.forEach((name, i) => {
+      data.forEach(row => {
         const li = document.createElement("li");
-        li.textContent = name + " ";
+        li.textContent = row.name + " ";
         const del = document.createElement("button");
         del.textContent = "✕";
-        del.onclick = () => removeTenant(i);
-        li.appendChild(del);
+        del.onclick = () => removeTenant(row.id);
         ul.appendChild(li);
+        li.appendChild(del);
       });
     }
 
-    function addTenant() {
+    async function addTenant() {
       const input = document.getElementById("name");
       const name = input.value.trim();
       if (!name) return;
-      const data = JSON.parse(localStorage.getItem(KEY) || "[]");
-      data.push(name);
-      localStorage.setItem(KEY, JSON.stringify(data));
+      await client.from("tenants").insert({ name });
       input.value = "";
       load();
     }
 
-    function removeTenant(index) {
-      const data = JSON.parse(localStorage.getItem(KEY) || "[]");
-      data.splice(index, 1);
-      localStorage.setItem(KEY, JSON.stringify(data));
+    async function removeTenant(id) {
+      await client.from("tenants").delete().eq("id", id);
       load();
     }
 
