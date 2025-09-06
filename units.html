@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Wohnungen</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Wohnungen 🏢</h1>
+
+  <input id="unit_no" placeholder="Einheit (z.B. WE 2.OG rechts)">
+  <input id="space" type="number" step="0.01" placeholder="Fläche m²">
+  <select id="tenant"></select>
+  <button onclick="addUnit()">Hinzufügen</button>
+
+  <ul id="list"></ul>
+
+  <p><a href="index.html">⬅️ Zurück</a></p>
+
+  <script>
+    const SUPABASE_URL = "https://ydraecgzxatvphidsjmo.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkcmFlY2d6eGF0dnBoaWRzam1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNTkwNTMsImV4cCI6MjA3MjczNTA1M30.sS350GFY-MY2MsWP2x0Ar9K8Je04-JWVodMTu6HxG5I";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let tenants = [];
+
+    async function loadTenants() {
+      const { data } = await sb.from("tenants").select("id,name").order("name");
+      tenants = data || [];
+      const sel = document.getElementById("tenant");
+      sel.innerHTML = '<option value="">(kein Mieter)</option>';
+      tenants.forEach(t => {
+        const o = document.createElement("option");
+        o.value = t.id; o.textContent = t.name;
+        sel.appendChild(o);
+      });
+    }
+
+    async function loadUnits() {
+      const { data } = await sb.from("units").select("*").order("created_at");
+      const ul = document.getElementById("list");
+      ul.innerHTML = "";
+      (data||[]).forEach(u => {
+        const li = document.createElement("li");
+        const tenantName = tenants.find(t => t.id === u.tenant_id)?.name || "—";
+        li.textContent = `${u.unit_no} (${u.floorspace_m2 || "?"} m²) – Mieter: ${tenantName} `;
+        const del = document.createElement("button");
+        del.textContent = "✕";
+        del.onclick = () => removeUnit(u.id);
+        li.appendChild(del);
+        ul.appendChild(li);
+      });
+    }
+
+    async function addUnit() {
+      const unit_no = document.getElementById("unit_no").value.trim();
+      if (!unit_no) return;
+      const m2 = document.getElementById("space").value;
+      const tenant_id = document.getElementById("tenant").value || null;
+      await sb.from("units").insert({ unit_no, floorspace_m2: m2 || null, tenant_id });
+      document.getElementById("unit_no").value = "";
+      document.getElementById("space").value = "";
+      document.getElementById("tenant").value = "";
+      await loadUnits();
+    }
+
+    async function removeUnit(id) {
+      await sb.from("units").delete().eq("id", id);
+      await loadUnits();
+    }
+
+    (async () => { await loadTenants(); await loadUnits(); })();
+  </script>
+</body>
+</html>
