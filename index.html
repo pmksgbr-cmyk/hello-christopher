@@ -1,10 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Hallo Christopher</title>
+  <title>Hallo App</title>
 </head>
 <body>
-  <h1>Hallo Christopher 👋</h1>
-  <p>Deine erste GitHub-Webseite!</p>
+  <h1>Willkommen 👋</h1>
+
+  <p>Gib deinen Namen ein:</p>
+  <input id="nameInput" type="text" placeholder="Dein Name">
+  <button onclick="greet()">Los!</button>
+
+  <p id="output"></p>
+
+  <script>
+    function greet() {
+      const name = document.getElementById("nameInput").value;
+      document.getElementById("output").innerText = "Hallo " + name + "!";
+    }
+  </script>
 </body>
 </html>
