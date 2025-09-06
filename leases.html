@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mietverträge</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Mietverträge 📄</h1>
+
+  <select id="unit"></select>
+  <select id="tenant"></select>
+  <input id="start" type="date">
+  <input id="rent" type="number" step="1" placeholder="Kaltmiete in €">
+  <button onclick="addLease()">Anlegen</button>
+
+  <ul id="list"></ul>
+
+  <p><a href="index.html">⬅️ Zurück</a></p>
+
+  <script>
+    const SUPABASE_URL = "https://ydraecgzxatvphidsjmo.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkcmFlY2d6eGF0dnBoaWRzam1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNTkwNTMsImV4cCI6MjA3MjczNTA1M30.sS350GFY-MY2MsWP2x0Ar9K8Je04-JWVodMTu6HxG5I";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let units = [], tenants = [];
+
+    async function loadOptions() {
+      const u = await sb.from("units").select("id,unit_no").order("unit_no");
+      const t = await sb.from("tenants").select("id,name").order("name");
+      units = u.data||[]; tenants = t.data||[];
+
+      const selU = document.getElementById("unit");
+      const selT = document.getElementById("tenant");
+      selU.innerHTML = ""; selT.innerHTML = "";
+
+      units.forEach(x => { const o=document.createElement("option"); o.value=x.id; o.textContent=x.unit_no; selU.appendChild(o); });
+      tenants.forEach(x => { const o=document.createElement("option"); o.value=x.id; o.textContent=x.name; selT.appendChild(o); });
+    }
+
+    function euroToCents(e) { return Math.round(parseFloat(e)*100); }
+    function centsToEuro(c) { return (c/100).toFixed(2).replace('.', ',') + " €"; }
+
+    async function loadLeases() {
+      const { data } = await sb.from("leases").select("*").order("created_at");
+      const ul = document.getElementById("list"); ul.innerHTML = "";
+      (data||[]).forEach(l => {
+        const li = document.createElement("li");
+        const u = units.find(x=>x.id===l.unit_id)?.unit_no || "??";
+        const t = tenants.find(x=>x.id===l.tenant_id)?.name || "??";
+        li.textContent = `${u} → ${t} | ab ${l.start_date} | ${centsToEuro(l.rent_cold_cents)} `;
+        const del = document.createElement("button"); del.textContent="✕";
+        del.onclick = async () => { await sb.from("leases").delete().eq("id", l.id); loadLeases(); };
+        li.appendChild(del);
+        ul.appendChild(li);
+      });
+    }
+
+    async function addLease() {
+      const unit_id = document.getElementById("unit").value;
+      const tenant_id = document.getElementById("tenant").value;
+      const start_date = document.getElementById("start").value;
+      const rent_eur = document.getElementById("rent").value;
+      if (!unit_id || !tenant_id || !start_date || !rent_eur) return;
+      await sb.from("leases").insert({
+        unit_id, tenant_id, start_date,
+        rent_cold_cents: euroToCents(rent_eur)
+      });
+      document.getElementById("rent").value = "";
+      loadLeases();
+    }
+
+    (async () => { await loadOptions(); await loadLeases(); })();
+  </script>
+</body>
+</html>
