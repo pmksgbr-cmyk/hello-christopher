@@ -1,17 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Mieter</title>
 </head>
 <body>
   <h1>Mieterübersicht 🏠</h1>
 
-  <ul>
-    <li>Max Mustermann</li>
-    <li>Anna Beispiel</li>
-    <li>Erika Musterfrau</li>
-  </ul>
+  <input id="name" type="text" placeholder="Neuer Mietername">
+  <button onclick="addTenant()">Hinzufügen</button>
+
+  <ul id="list"></ul>
 
   <p><a href="index.html">⬅️ Zurück zur Startseite</a></p>
+
+  <script>
+    const KEY = "mieterList";
+
+    function load() {
+      const data = JSON.parse(localStorage.getItem(KEY) || "[]");
+      const ul = document.getElementById("list");
+      ul.innerHTML = "";
+      data.forEach((name, i) => {
+        const li = document.createElement("li");
+        li.textContent = name + " ";
+        const del = document.createElement("button");
+        del.textContent = "✕";
+        del.onclick = () => removeTenant(i);
+        li.appendChild(del);
+        ul.appendChild(li);
+      });
+    }
+
+    function addTenant() {
+      const input = document.getElementById("name");
+      const name = input.value.trim();
+      if (!name) return;
+      const data = JSON.parse(localStorage.getItem(KEY) || "[]");
+      data.push(name);
+      localStorage.setItem(KEY, JSON.stringify(data));
+      input.value = "";
+      load();
+    }
+
+    function removeTenant(index) {
+      const data = JSON.parse(localStorage.getItem(KEY) || "[]");
+      data.splice(index, 1);
+      localStorage.setItem(KEY, JSON.stringify(data));
+      load();
+    }
+
+    load();
+  </script>
 </body>
 </html>
